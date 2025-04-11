@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -40,12 +39,30 @@ def get_repo_data(owner, repo):
         "updated_at": repo_info.get("updated_at")
     }
 
-# Função para análise de complexidade com radon
-def analyze_complexity(path="."):
-    result = subprocess.run(["radon", "cc", path, "-s", "-a"], capture_output=True, text=True)
-    return result.stdout
+# Função para pegar o branch padrão (main, master, etc)
+def get_default_branch(owner, repo):
+    repo_info = requests.get(f"https://api.github.com/repos/{owner}/{repo}").json()
+    return repo_info.get("default_branch", "main")
 
-# Template HTML
+# Função para análise de complexidade com radon (direto do GitHub)
+def analyze_complexity_from_github(owner, repo):
+    branch = get_default_branch(owner, repo)
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
+    response = requests.get(api_url).json()
+
+    results = []
+    for file in response.get("tree", []):
+        if file["path"].endswith(".py"):
+            file_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{file['path']}"
+            content_response = requests.get(file_url)
+            if content_response.status_code == 200:
+                with open("temp_file.py", "w") as f:
+                    f.write(content_response.text)
+                result = subprocess.run(["radon", "cc", "temp_file.py", "-s", "-a"], capture_output=True, text=True)
+                results.append(f"{file['path']}\n{result.stdout}")
+    return "\n".join(results) if results else "Nenhum arquivo Python encontrado ou erro ao analisar."
+
+# Template HTML do relatório
 TEMPLATE = '''
 <html>
 <head><title>Tech Health Appendix</title></head>
@@ -94,23 +111,4 @@ def analyze_repo(request: AnalyzeRequest):
 
     except Exception as e:
         return {"error": str(e)}
-
-
-        
-def analyze_complexity_from_github(owner, repo):
-    api_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/main?recursive=1"
-    response = requests.get(api_url).json()
-
-    results = []
-    for file in response.get("tree", []):
-        if file["path"].endswith(".py"):
-            file_url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/{file['path']}"
-            content_response = requests.get(file_url)
-            if content_response.status_code == 200:
-                with open("temp_file.py", "w") as f:
-                    f.write(content_response.text)
-                result = subprocess.run(["radon", "cc", "temp_file.py", "-s", "-a"], capture_output=True, text=True)
-                results.append(f"{file['path']}\n{result.stdout}")
-    return "\n".join(results) if results else "Nenhum arquivo Python encontrado ou erro ao analisar."
-
 
