@@ -30,3 +30,29 @@ Isso ajuda investidores a rapidamente entenderem a saúde técnica de um projeto
 ## Tempo Total de Desenvolvimento
 
 Aproximadamente 4 horas.
+
+## Instruções para rodar o projeto
+
+### Backend (API FastAPI)
+
+1. Crie e ative um ambiente virtual:
+  - python -m venv venv source venv/bin/activate # No Windows: venv\Scripts\activate
+
+2. Instale as dependências:
+  - pip install -r requirements.txt
+
+3. Rode o servidor:
+  - uvicorn main:app --reload
+### Frontend (React)
+
+1. Vá para a pasta `frontend`:
+  - cd frontend
+
+2. Instale as dependências:
+  - npm install
+
+3. Inicie a aplicação:
+  - npm run dev
+
+O backend estará rodando em `http://localhost:8000` e o frontend em `http://localhost:5173`.
+
